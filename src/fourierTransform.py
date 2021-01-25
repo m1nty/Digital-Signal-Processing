@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import cmath, math
+from scipy import signal
 
 
 def plotSpectrum(x, Fs, type='FFT'):
@@ -28,6 +29,7 @@ def plotSpectrum(x, Fs, type='FFT'):
     # fig.savefig("freq.png")
     plt.show()
 
+
 def plotTime(x, time):
     fig, ax = plt.subplots()
     ax.plot(time, x)
@@ -37,7 +39,7 @@ def plotTime(x, time):
     plt.show()
 
 
-def generateSin(Fs, interval, frequency=7.0, amplitude=5.0, phase=0.0):
+def generateSin(Fs, interval, frequency, amplitude, phase):
     dt = 1.0 / Fs  # sampling period (increment in time)
     time = np.arange(0, interval, dt)  # time vector over interval
 
@@ -46,15 +48,28 @@ def generateSin(Fs, interval, frequency=7.0, amplitude=5.0, phase=0.0):
 
     return time, x
 
+
 def DFT_plotSpectrum(x):
     N = len(x)
     result = []
     for m in range(N):
         bins = 0
         for k in range(N):
-            bins += x[k]*cmath.exp(-2j*np.pi*(float(k*m)/N))
-        result.append(abs(bins)/N)
+            bins += x[k] * cmath.exp(-2j * np.pi * (float(k * m) / N))
+        result.append(abs(bins) / N)
     return result
+
+
+def IDFT_real(bins):
+    N = len(bins)
+    result = []
+    for k in range(N):
+        x = 0
+        for m in range(N):
+            x += bins[m] * np.exp(2j * np.pi * ((k * m) / N))
+        result.append(x.real / N)
+    return result
+
 
 def DFT(x):
     N = len(x)
@@ -62,9 +77,10 @@ def DFT(x):
     for m in range(N):
         bins = 0
         for k in range(N):
-            bins += x[k]*cmath.exp(-2j*np.pi*((k*m)/N))
+            bins += x[k] * np.exp(-2j * np.pi * ((k * m) / N))
         result.append(bins)
     return result
+
 
 def IDFT(bins):
     N = len(bins)
@@ -72,55 +88,83 @@ def IDFT(bins):
     for k in range(N):
         x = 0
         for m in range(N):
-            x += bins[m]*cmath.exp(2j*np.pi*((k*m)/N))
-        result.append(x.real/N)
+            x += bins[m] * np.exp(2j * np.pi * ((k * m) / N))
+        result.append(x / N)
     return result
 
+
 def randomSignal():
-    return np.random.normal(-10, 10, 1000)
+    x = np.zeros(1000)
+    for i in range(1000):
+        x[i] = np.random.randn()
+        if x[i] > 10:
+            x[i] = 10
+        if x[i] < -10:
+            x[i] = -10
+    return x
+
 
 def spectralDensity(nums):
     energy = 0
     for k in nums:
-        energy += (abs(k))**2
+        energy += abs(k ** 2)
     return energy
 
 
+# *****************************TAKEHOME EXERCISE 1*****************************
+def generateSquare(N, numberOfPeriods, dutyCycles):
+    # Generate sequence of 1's and -1's depending on duty cycle for a single Period
+    low = math.floor((1 - dutyCycles) * N)
+    samples = [1] * N
+    samples[(N - low):] = [-1] * low
+
+    # Sequence repeats for specified number of periods, if greater than 1
+    if numberOfPeriods == 1:
+        return samples
+    else:
+        repeatingSequence = samples.copy()
+        for x in range(numberOfPeriods - 1):
+            for num in samples:
+                repeatingSequence.append(num)
+        return repeatingSequence
+
+
 if __name__ == "__main__":
-    Fs = 100.0  # sampling rate
-    interval = 1.0  # set up to one full second
+    Fs = 100.0
+    interval = 1.0
 
-    # generate the user-defined sin function
-    time, x = generateSin(Fs, interval)
-    # use np.random.randn() for randomization
-    # we can owverwrie the default values
-    # frequency =  8.0                     # frequency of the signal
-    # amplitude =  3.0                     # amplitude of the signal
-    # phase = 1.0                          # phase of the signal
-    # time, x = generateSin(Fs, interval, frequency, amplitude, phase)
+    # *****************************In-Lab Part 1*****************************
 
-    # plot the signal in time domain
+    # #Task a)
+    # time,x = generateSin(Fs, interval, 7.0, 5.0, 0.0)
     # plotTime(x, time)
-    # plotTime(IDFT(DFT(x)), time)
+    # plotSpectrum(x, Fs, type="FFT")
+    # plotSpectrum(x, Fs, type="DFT")
+    # plotTime(IDFT_real(DFT(x)), time)
+    #
+    # # Task b)
+    # rando = randomSignal()
+    # print(spectralDensity(DFT(rando))/1000)
+    # print(spectralDensity(IDFT(rando)))
+    #
+    # #Task c)
+    # time, sin1 = generateSin(Fs, interval, 4.0, 100.0, 7.0)
+    # time, sin2 = generateSin(Fs, interval, 7.0, 20.0, 4.0)
+    # time, sin3 = generateSin(Fs, interval, 10.0, 50.0, 20.0)
+    # result = sin1 + sin2 + sin3
+    # plotTime(result, time)
+    # plotSpectrum(result, Fs, type="FFT")
 
-    # print(randomSignal())
-    # plot the signal in frequency domain
-    # plotSpectrum(randomSignal(), Fs, type='FFT')
-    # plotSpectrum(randomSignal(), Fs, type='dft')
+    # *****************************TAKE HOME EXERCISE 1*****************************
+    N = 1000  # number of data points within one period
+    numberOfPeriods = 1  # number of periods of square wave
+    dutyCycle = 0.7
+    squareWaves = generateSquare(N, numberOfPeriods, dutyCycle)  # Generates new square wave
 
-    print(spectralDensity(randomSignal()))
-    print(spectralDensity(DFT(randomSignal())))
+    # Creates evenly distributed partitions depending on number of periods, and data points for each, all within
+    # specified range which are assigned from the first 2 arguments of function
+    t_samples = np.linspace(0, 1, N * (numberOfPeriods))
 
-    # print(x == IDFT(DFTT(x)))
-    # compute the spectrum with your own DFT
-    # you can use cmath.exp() for complex exponentials
-    # plotSpectrum(x, Fs, type = 'your DFT name')
-
-    # confirm DFT/IDFT correctness by checking if x == IDFT(DFT(x))
-    # Note: you should also numerically check if the
-    # signal energy in time and frequency domains is the same
-
-    # generate randomized multi-tone signals
-    # plot them in both time and frequency domain
-
+    plotTime(squareWaves, t_samples)
+    plotSpectrum(squareWaves, Fs, type="FFT")
     plt.show()

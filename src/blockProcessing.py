@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import wavfile
 from scipy import signal
+from filterDesign import lowPass
+import math
 
 def filter_block_processing(audio_data, \
 							block_size, \
@@ -10,7 +12,8 @@ def filter_block_processing(audio_data, \
 							N_taps):
 
 	# derive filter coefficients
-	firwin_coeff = signal.firwin(N_taps, audio_Fc/audio_Fs)
+	coeff = lowPass(audio_Fc, audio_Fs, N_taps)
+
 	# we assume the data is stereo as in the audio test file
 	filtered_data = np.empty(shape = audio_data.shape)
 	# start at the first block (with relative position zero)
@@ -18,13 +21,19 @@ def filter_block_processing(audio_data, \
 
 	while True:
 
-		# filter both left and right channels
-		filtered_data[position:position+block_size, 0] = \
-			signal.lfilter(firwin_coeff, 1.0, \
-			audio_data[position:position+block_size, 0])
-		filtered_data[position:position+block_size, 1] = \
-			signal.lfilter(firwin_coeff, 1.0, \
-			audio_data[position:position+block_size, 1])
+		# *****************************In-Lab Part 3*****************************
+
+		# z = signal.lfilter_zi(coeff, 1.0)
+
+		# filtered_data[position:position+block_size, 0], z= signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 0], zi =z)
+		# filtered_data[position:position+block_size, 1], z = signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 1], zi =z)
+
+
+
+		# *****************************TAKEHOME EXERCISE 3*****************************
+
+		filtered_data[position:position+block_size, 0]= convolution(audio_data[position:position+block_size, 0], coeff)
+		filtered_data[position:position+block_size, 1]= convolution(audio_data[position:position+block_size, 1], coeff)
 
 		position += block_size
 		if position > len(audio_data):
@@ -36,16 +45,32 @@ def filter_block_processing(audio_data, \
 
 	return filtered_data
 
+
+# *****************************TAKEHOME EXERCISE 3*****************************
+
+def convolution(x, h):
+	M = len(x)
+	N = len(h)
+	y = np.zeros(x.shape[0])
+	for n in range(M+N-1): #finite sequence, thus bound ensures all values are covered
+		for k in range(N+1):
+			if((n-k)>=0 and k<=(N-1) and (n-k)<=(M-1)): #conditions which result in invalid indexing (convolution value of 0)
+				y[n] += x[n - k]*h[k] #convolution summation
+		if n==len(x)-1: #if block size reached, break from loop
+			break
+	return y
+
 def filter_single_pass(audio_data, audio_Fc, audio_Fs, N_taps):
 
 	# derive filter coefficients
-	firwin_coeff = signal.firwin(N_taps, audio_Fc/audio_Fs)
+	coeff = lowPass(audio_Fc, audio_Fs, N_taps)
 	# we assume the data is stereo as in the audio test file
 	filtered_data = np.empty(shape = audio_data.shape)
-	# filter left channel
-	filtered_data[:,0] = signal.lfilter(firwin_coeff, 1.0, audio_data[:,0])
-	# filter stereo channel
-	filtered_data[:,1] = signal.lfilter(firwin_coeff, 1.0, audio_data[:,1])
+
+	# # filter left channel
+	filtered_data[:,0] = convolution(audio_data[:,0],coeff)
+	# # filter stereo channel
+	filtered_data[:,1] = convolution(audio_data[:,1],coeff)
 
 	return filtered_data
 
@@ -85,5 +110,4 @@ if __name__ == "__main__":
 	# if you plot in the time domain, select a subset of samples,
 	# from a particular channel (or both channels) e.g.,
 	# audio_data[start:start+number_of_samples, 0]
-
-    # plt.show()
+	# plt.show()
