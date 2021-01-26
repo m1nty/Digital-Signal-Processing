@@ -108,7 +108,8 @@ if __name__ == "__main__":
 	# *****************************TAKE HOME EXERCISE 2*****************************
 
 	# Frequencies specified for band pass paramaters eliminate the middle tone signal effectivley
-	bandPassCoeff = signal.firwin(N_taps, [0.1,0.5], window=('hann'))
+	#desiredFreq = (lowFreqBound/Nyquist , highFreqBound/Nyquist)
+	bandPassCoeff = signal.firwin(N_taps, [0.16,0.24], window=('hann'), pass_zero=False)
 	multiToneFilter(Fs, Fc, bandPassCoeff)
 
 
