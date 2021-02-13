@@ -48,6 +48,10 @@ def filter_block_processing(audio_data, \
 
 # *****************************TAKEHOME EXERCISE 3*****************************
 
+def filter(h):
+	z = 0
+	return z
+	
 def convolution(x, h, z):
 
 	z = signal.lfilter_zi(h, 1.0)
