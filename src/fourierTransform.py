@@ -167,4 +167,10 @@ if __name__ == "__main__":
 
     plotTime(squareWaves, t_samples)
     plotSpectrum(squareWaves, Fs, type="FFT")
+
+    print("test")
+    time,x = generateSin(Fs, interval, 7.0, 5.0, 0.0)
+    print(x)
+    print(DFT(x))
+    print(IDFT(DFT(x)))
     plt.show()

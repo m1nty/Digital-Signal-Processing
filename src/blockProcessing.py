@@ -18,16 +18,16 @@ def filter_block_processing(audio_data, \
 	filtered_data = np.empty(shape = audio_data.shape)
 	# start at the first block (with relative position zero)
 	position = 0
+	z = signal.lfilter_zi(coeff, 1.0)
+
 
 	while True:
 
 		# *****************************In-Lab Part 3*****************************
 
-		# z = signal.lfilter_zi(coeff, 1.0)
 
-		# filtered_data[position:position+block_size, 0], z= signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 0], zi =z)
-		# filtered_data[position:position+block_size, 1], z = signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 1], zi =z)
-
+		filtered_data[position:position+block_size, 0], z= signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 0], zi =z)
+		filtered_data[position:position+block_size, 1], z = signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 1], zi =z)
 
 
 		# *****************************TAKEHOME EXERCISE 3*****************************
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
 	# you can control also the block size
 	block_processing_data = filter_block_processing(audio_data, \
-						block_size = 1000, \
+						block_size = 60, \
 						audio_Fc = 10e3, \
 						audio_Fs = audio_Fs, \
 						N_taps = 51)
