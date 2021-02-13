@@ -32,8 +32,8 @@ def filter_block_processing(audio_data, \
 
 		# *****************************TAKEHOME EXERCISE 3*****************************
 
-		filtered_data[position:position+block_size, 0]= convolution(audio_data[position:position+block_size, 0], coeff)
-		filtered_data[position:position+block_size, 1]= convolution(audio_data[position:position+block_size, 1], coeff)
+		filtered_data[position:position+block_size, 0], z = convolution(audio_data[position:position+block_size, 0], coeff, z)
+		filtered_data[position:position+block_size, 1], z = convolution(audio_data[position:position+block_size, 1], coeff, z)
 
 		position += block_size
 		if position > len(audio_data):
@@ -48,7 +48,11 @@ def filter_block_processing(audio_data, \
 
 # *****************************TAKEHOME EXERCISE 3*****************************
 
-def convolution(x, h):
+def convolution(x, h, z):
+
+	z = signal.lfilter_zi(h, 1.0)
+	#z = filter(h)
+
 	M = len(x)
 	N = len(h)
 	y = np.zeros(x.shape[0])
@@ -58,21 +62,21 @@ def convolution(x, h):
 				y[n] += x[n - k]*h[k] #convolution summation
 		if n==len(x)-1: #if block size reached, break from loop
 			break
-	return y
+	return y, z
 
-def filter_single_pass(audio_data, audio_Fc, audio_Fs, N_taps):
+# def filter_single_pass(audio_data, audio_Fc, audio_Fs, N_taps):
 
-	# derive filter coefficients
-	coeff = lowPass(audio_Fc, audio_Fs, N_taps)
-	# we assume the data is stereo as in the audio test file
-	filtered_data = np.empty(shape = audio_data.shape)
+# 	# derive filter coefficients
+# 	coeff = lowPass(audio_Fc, audio_Fs, N_taps)
+# 	# we assume the data is stereo as in the audio test file
+# 	filtered_data = np.empty(shape = audio_data.shape)
 
-	# # filter left channel
-	filtered_data[:,0] = convolution(audio_data[:,0],coeff)
-	# # filter stereo channel
-	filtered_data[:,1] = convolution(audio_data[:,1],coeff)
+# 	# # filter left channel
+# 	filtered_data[:,0] = convolution(audio_data[:,0],coeff)
+# 	# # filter stereo channel
+# 	filtered_data[:,1] = convolution(audio_data[:,1],coeff)
 
-	return filtered_data
+# 	return filtered_data
 
 # audio test file from: https://www.videvo.net/royalty-free-music/
 if __name__ == "__main__":
@@ -84,16 +88,16 @@ if __name__ == "__main__":
 		\n Numbef of samples = {2:d}' \
 		.format(audio_Fs, audio_data.ndim, len(audio_data)))
 
-	# you can control the cutoff frequency and number of taps
-	single_pass_data = filter_single_pass(audio_data, \
-						audio_Fc = 10e3, \
-						audio_Fs = audio_Fs, \
-						N_taps = 51)
+	# # you can control the cutoff frequency and number of taps
+	# single_pass_data = filter_single_pass(audio_data, \
+	# 					audio_Fc = 10e3, \
+	# 					audio_Fs = audio_Fs, \
+	# 					N_taps = 51)
 
-	# write filtered data back to a .wav file
-	wavfile.write("../data/single_pass_filtered.wav", \
-	 			audio_Fs, \
-				single_pass_data.astype(np.int16))
+	# # write filtered data back to a .wav file
+	# wavfile.write("../data/single_pass_filtered.wav", \
+	#  			audio_Fs, \
+	# 			single_pass_data.astype(np.int16))
 
 	# you can control also the block size
 	block_processing_data = filter_block_processing(audio_data, \
