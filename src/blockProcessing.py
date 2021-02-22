@@ -19,6 +19,7 @@ def filter_block_processing(audio_data, \
 	# start at the first block (with relative position zero)
 	position = 0
 	z = signal.lfilter_zi(coeff, 1.0)
+	state = np.zeros(N_taps-1)
 
 
 	while True:
@@ -26,37 +27,43 @@ def filter_block_processing(audio_data, \
 		# *****************************In-Lab Part 3*****************************
 
 
-		filtered_data[position:position+block_size, 0], z= signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 0], zi =z)
-		filtered_data[position:position+block_size, 1], z = signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 1], zi =z)
+		# filtered_data[position:position+block_size, 0], z= signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 0], zi =z)
+		# filtered_data[position:position+block_size, 1], z = signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 1], zi =z)
 
 
 		# *****************************TAKEHOME EXERCISE 3*****************************
 
-		filtered_data[position:position+block_size, 0], z = convolution(audio_data[position:position+block_size, 0], coeff, z)
-		filtered_data[position:position+block_size, 1], z = convolution(audio_data[position:position+block_size, 1], coeff, z)
+		filtered_data[position:position+block_size, 0], state = blockConvolution(audio_data[position:position+block_size, 0], coeff, state)
+		filtered_data[position:position+block_size, 1], state = blockConvolution(audio_data[position:position+block_size, 1], coeff, state)
 
 		position += block_size
 		if position > len(audio_data):
 			break
-
-	# to properly handle blocks you will need to use
-	# the zi argument from lfilter from SciPy
-	# explore SciPy, experiment, understand and learn!
 
 	return filtered_data
 
 
 # *****************************TAKEHOME EXERCISE 3*****************************
 
-def filter(h):
-	z = 0
-	return z
+def blockConvolution(x, h, state_in):
+	M = len(x)
+	N = len(h)
+	y = np.zeros(M)
+	for n in range(M): 
+		for k in range(N):
+			if n-k >= 0:
+				y[n] += x[n-k]*h[k]
+			else:
+				y[n] += state_in[n-k]*h[k]
+	state_out = x[-(N-1):]
 	
-def convolution(x, h, z):
+	if(len(state_out)!=N-1):
+		state_out = np.concatenate((state_out,np.zeros(N-1-len(state_out))))
 
-	z = signal.lfilter_zi(h, 1.0)
-	#z = filter(h)
+	return y, state_out
 
+	
+def convolution(x, h):
 	M = len(x)
 	N = len(h)
 	y = np.zeros(x.shape[0])
@@ -64,23 +71,23 @@ def convolution(x, h, z):
 		for k in range(N+1):
 			if((n-k)>=0 and k<=(N-1) and (n-k)<=(M-1)): #conditions which result in invalid indexing (convolution value of 0)
 				y[n] += x[n - k]*h[k] #convolution summation
-		if n==len(x)-1: #if block size reached, break from loop
+		if n==len(x)-1: 
 			break
-	return y, z
+	return y
 
-# def filter_single_pass(audio_data, audio_Fc, audio_Fs, N_taps):
+def filter_single_pass(audio_data, audio_Fc, audio_Fs, N_taps):
 
-# 	# derive filter coefficients
-# 	coeff = lowPass(audio_Fc, audio_Fs, N_taps)
-# 	# we assume the data is stereo as in the audio test file
-# 	filtered_data = np.empty(shape = audio_data.shape)
+	# derive filter coefficients
+	coeff = lowPass(audio_Fc, audio_Fs, N_taps)
+	# we assume the data is stereo as in the audio test file
+	filtered_data = np.empty(shape = audio_data.shape)
 
-# 	# # filter left channel
-# 	filtered_data[:,0] = convolution(audio_data[:,0],coeff)
-# 	# # filter stereo channel
-# 	filtered_data[:,1] = convolution(audio_data[:,1],coeff)
+	# # filter left channel
+	filtered_data[:,0] = convolution(audio_data[:,0],coeff)
+	# # filter stereo channel
+	filtered_data[:,1] = convolution(audio_data[:,1],coeff)
 
-# 	return filtered_data
+	return filtered_data
 
 # audio test file from: https://www.videvo.net/royalty-free-music/
 if __name__ == "__main__":
@@ -92,16 +99,16 @@ if __name__ == "__main__":
 		\n Numbef of samples = {2:d}' \
 		.format(audio_Fs, audio_data.ndim, len(audio_data)))
 
-	# # you can control the cutoff frequency and number of taps
-	# single_pass_data = filter_single_pass(audio_data, \
-	# 					audio_Fc = 10e3, \
-	# 					audio_Fs = audio_Fs, \
-	# 					N_taps = 51)
+	# you can control the cutoff frequency and number of taps
+	single_pass_data = filter_single_pass(audio_data, \
+						audio_Fc = 10e3, \
+						audio_Fs = audio_Fs, \
+						N_taps = 51)
 
-	# # write filtered data back to a .wav file
-	# wavfile.write("../data/single_pass_filtered.wav", \
-	#  			audio_Fs, \
-	# 			single_pass_data.astype(np.int16))
+	# write filtered data back to a .wav file
+	wavfile.write("../data/single_pass_filtered.wav", \
+	 			audio_Fs, \
+				single_pass_data.astype(np.int16))
 
 	# you can control also the block size
 	block_processing_data = filter_block_processing(audio_data, \
