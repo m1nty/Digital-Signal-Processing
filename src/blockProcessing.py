@@ -18,36 +18,51 @@ def filter_block_processing(audio_data, \
 	filtered_data = np.empty(shape = audio_data.shape)
 	# start at the first block (with relative position zero)
 	position = 0
+	z = signal.lfilter_zi(coeff, 1.0)
+	state = np.zeros(N_taps-1)
+
 
 	while True:
 
 		# *****************************In-Lab Part 3*****************************
 
-		# z = signal.lfilter_zi(coeff, 1.0)
 
 		# filtered_data[position:position+block_size, 0], z= signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 0], zi =z)
 		# filtered_data[position:position+block_size, 1], z = signal.lfilter(coeff, 1.0, audio_data[position:position+block_size, 1], zi =z)
 
 
-
 		# *****************************TAKEHOME EXERCISE 3*****************************
 
-		filtered_data[position:position+block_size, 0]= convolution(audio_data[position:position+block_size, 0], coeff)
-		filtered_data[position:position+block_size, 1]= convolution(audio_data[position:position+block_size, 1], coeff)
+		filtered_data[position:position+block_size, 0], state = blockConvolution(audio_data[position:position+block_size, 0], coeff, state)
+		filtered_data[position:position+block_size, 1], state = blockConvolution(audio_data[position:position+block_size, 1], coeff, state)
 
 		position += block_size
 		if position > len(audio_data):
 			break
-
-	# to properly handle blocks you will need to use
-	# the zi argument from lfilter from SciPy
-	# explore SciPy, experiment, understand and learn!
 
 	return filtered_data
 
 
 # *****************************TAKEHOME EXERCISE 3*****************************
 
+def blockConvolution(x, h, state_in):
+	M = len(x)
+	N = len(h)
+	y = np.zeros(M)
+	for n in range(M): 
+		for k in range(N):
+			if n-k >= 0:
+				y[n] += x[n-k]*h[k]
+			else:
+				y[n] += state_in[n-k]*h[k]
+	state_out = x[-(N-1):]
+	
+	if(len(state_out)!=N-1):
+		state_out = np.concatenate((state_out,np.zeros(N-1-len(state_out))))
+
+	return y, state_out
+
+	
 def convolution(x, h):
 	M = len(x)
 	N = len(h)
@@ -56,7 +71,7 @@ def convolution(x, h):
 		for k in range(N+1):
 			if((n-k)>=0 and k<=(N-1) and (n-k)<=(M-1)): #conditions which result in invalid indexing (convolution value of 0)
 				y[n] += x[n - k]*h[k] #convolution summation
-		if n==len(x)-1: #if block size reached, break from loop
+		if n==len(x)-1: 
 			break
 	return y
 
@@ -97,7 +112,7 @@ if __name__ == "__main__":
 
 	# you can control also the block size
 	block_processing_data = filter_block_processing(audio_data, \
-						block_size = 1000, \
+						block_size = 60, \
 						audio_Fc = 10e3, \
 						audio_Fs = audio_Fs, \
 						N_taps = 51)
